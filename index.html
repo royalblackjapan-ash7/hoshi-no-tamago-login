@@ -1,8 +1,98 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>星のたまご｜ログイン</title><style>body{margin:0;min-height:100vh;background:#091630;color:#f6f8ff;font-family:system-ui;display:grid;place-items:center}main{width:min(90%,400px);padding:24px;border-radius:20px;background:#1b3264}input,button{box-sizing:border-box;width:100%;padding:14px;margin:7px 0 14px;border-radius:10px;border:0;font:inherit}button{background:#ffdb77;font-weight:bold}p{line-height:1.6}</style></head><body><main><h1>🌟 星のたまご</h1><p>登録された利用者だけが遊べます。</p><form id="form"><label>メールアドレス<input id="email" type="email" required autocomplete="username"></label><label>パスワード<input id="password" type="password" required autocomplete="current-password"></label><button type="submit">ログイン</button></form><p id="status" role="status">接続中…</p></main><script type="module">
-import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const client=createClient('https://zgwjipfgtvldqpppysre.supabase.co','sb_publishable_SqV5zAdjlqOroJWvf4fn_Q_e_sHbhwI');
-const status=document.querySelector('#status'),form=document.querySelector('#form');let busy=false;
-async function loadGame(){if(busy)return;busy=true;status.textContent='ゲームを読み込んでいます…';try{const {data:{user},error:authError}=await client.auth.getUser();if(authError||!user)throw Error('ログインしてください');const {data,error}=await client.storage.from('hoshi-private').download('game.html');if(error||!data)throw error||Error('ゲーム取得に失敗しました');const html=await data.text();if(!html.includes('id="game-source"')||!html.includes('game_saves'))throw Error('ゲームデータが正しくありません');document.open();document.write(html);document.close();}catch(e){console.error(e);status.textContent='ゲームの読み込みに失敗しました。管理者にご連絡ください。';busy=false;}}
-form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='認証中…';const button=form.querySelector('button');button.disabled=true;const {error}=await client.auth.signInWithPassword({email:document.querySelector('#email').value.trim(),password:document.querySelector('#password').value});if(error){status.textContent='メールアドレスまたはパスワードを確認してください。';button.disabled=false;return;}await loadGame();});
-const {data:{session}}=await client.auth.getSession();if(session)await loadGame();else status.textContent='メールアドレスとパスワードを入力してください。';
-</script></body></html>
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>星のたまご｜ログイン</title>
+<style>
+body{margin:0;min-height:100vh;background:#091630;color:white;font-family:system-ui;display:grid;place-items:center}
+main{width:min(90%,400px);padding:24px;border-radius:20px;background:#1b3264;box-sizing:border-box}
+input,button{box-sizing:border-box;width:100%;padding:14px;margin:7px 0 14px;border:0;border-radius:10px;font:inherit}
+button{background:#ffdb77;color:#15264c;font-weight:bold}
+p{line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+<h1>🌟 星のたまご 🥚</h1>
+<p>登録された利用者だけが遊べます。</p>
+<form id="form">
+<label>メールアドレス
+<input id="email" type="email" required>
+</label>
+<label>パスワード
+<input id="password" type="password" required>
+</label>
+<button type="submit">ログイン</button>
+</form>
+<p id="status">接続中…</p>
+</main>
+<script type="module">
+import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const client=createClient(
+"https://zgwjipfgtvldqpppysre.supabase.co",
+"sb_publishable_SqV5zAdjlqOroJWvf4fn_Q_e_sHbhwI"
+);
+
+const form=document.getElementById("form");
+const status=document.getElementById("status");
+let loading=false;
+
+async function loadGame(){
+if(loading)return;
+loading=true;
+status.textContent="ゲームを読み込んでいます…";
+
+try{
+const {data:{user},error:authError}=await client.auth.getUser();
+if(authError||!user)throw new Error("認証が必要です");
+
+const {data,error}=await client.storage
+.from("hoshi-private")
+.download("game-private.html");
+
+if(error||!data)throw error||new Error("取得失敗");
+
+const html=await data.text();
+if(!html.includes("<html")||!html.includes("game_saves")){
+throw new Error("ゲームファイルの形式を確認してください");
+}
+
+document.open();
+document.write(html);
+document.close();
+
+}catch(err){
+console.error(err);
+status.textContent="読み込みエラー: "+err.message;
+loading=false;
+}
+}
+
+form.addEventListener("submit",async e=>{
+e.preventDefault();
+const button=form.querySelector("button");
+button.disabled=true;
+status.textContent="ログイン中…";
+
+const {error}=await client.auth.signInWithPassword({
+email:document.getElementById("email").value.trim(),
+password:document.getElementById("password").value
+});
+
+if(error){
+status.textContent="メールアドレスまたはパスワードを確認してください。";
+button.disabled=false;
+return;
+}
+await loadGame();
+});
+
+const {data:{session}}=await client.auth.getSession();
+if(session)await loadGame();
+else status.textContent="メールアドレスとパスワードを入力してください。";
+</script>
+</body>
+</html>
